@@ -114,31 +114,115 @@ fig.suptitle('Work Experience Time')
 
 plt.show()
 
-import os
+fig, ax=plt.subplots(figsize=(12,5))
 
-username = "italofvaz" # insira o seu nome de usuário do git
-os.environ["GITHUB_USER"] = username
+sns.histplot(data=df, x='WorkExp', ax=ax, kde=True)
+fig.suptitle('time experience')
 
-!git config --global user.name "${GITHUB_USER}"
+plt.show()
 
-from getpass import getpass
+df['WorkExp'].value_counts()
 
-usermail = getpass()
-os.environ["GITHUB_MAIL"] = usermail
+df['Age'].value_counts(normalize=True, dropna=True).apply(lambda x: f'{100 * x:.2f}%')
 
-!git config --global user.email "${GITHUB_MAIL}"
+df['Age'].unique()
 
-usertoken = getpass()
-os.environ["GITHUB_TOKEN"] = usertoken
+mapa_idade = {
+    'Under 18 years old' : '[00 - 18]',
+    '18-24 years old' : '[18 - 24]',
+    '25-34 years old' : '[25 - 34]',
+    '35-44 years old' : '[35 - 44]',
+    '45-54 years old' : '[45 - 54]',
+    '55-64 years old' : '[55 - 64]',
+    '65 years or older' : '[65 - 99]',
+    'Prefer not to say' : '[??]',
+    np.NaN : '[??]'
 
-!git clone https://${GITHUB_USER}:${GITHUB_TOKEN}@github.com/italofvaz/EDA_StackOverflow_2025.git
+}
 
-# Commented out IPython magic to ensure Python compatibility.
-# Commented out IPython magic to ensure Python compatibility.
-#  %cd /content/EDA_StackOverflow_2025/
+df['Age_new'] = df['Age'].map(mapa_idade)
 
-!git add .
+df2 = df.loc[df['Age_new'] != '[??]']
 
-!git commit -m "subindo codigo do colab"
+df2['Age_new'].value_counts(dropna=False).sort_index()
 
-!git push origin main
+fig, ax = plt.subplots(figsize=(20,8))
+
+idade = sorted(df2['Age_new'].unique())
+
+sns.histplot(data=df2 , ax=ax, hue='Age_new', x='WorkExp', binwidth=1.0, hue_order=idade)
+fig.suptitle('Age Range Work Experience')
+
+
+plt.show()
+
+fig, ax=plt.subplots(figsize=(20,8))
+
+sns.histplot(data=df, x='RemoteWork', binwidth=1.0,)
+plt.show()
+
+#correlacao das variaveis
+
+x = np.linspace(0, 10, 100)
+y_random = np.random.uniform(-1,1,100)
+
+y_corr = x*2+y_random
+
+fig, (ax_left, ax_right) = plt.subplots(figsize=(20,8), ncols=2)
+
+sns.scatterplot(x=x, ax=ax_left, y=y_corr)
+ax_left.set_title('Correlation')
+
+sns.scatterplot(ax=ax_right, x=x, y=y_random)
+ax_right.set_title('Bad Correlation')
+
+fig.suptitle('Correlations')
+plt.show()
+
+#correlacao do salario com o tempo de trabalho
+
+#a existencia de um valor muito alto chama a atencao de erros nos dados, dessa forma é necessario tratar os dados para uma melhor visualizacao
+
+df_filter = df.loc[df['ConvertedCompYearly'] <= 500_000]
+
+fig, ax=plt.subplots(figsize=(20,6))
+
+sns.scatterplot(data=df_filter, x='WorkExp', y='ConvertedCompYearly')
+fig.suptitle('Correlation of work experience and salary')
+
+plt.show()
+
+cut = 300_000
+
+df_up = df_filter.loc[df_filter['ConvertedCompYearly'] > cut ]
+df_down = df_filter.loc[df_filter['ConvertedCompYearly'] <= cut]
+
+fig, (ax_up, ax_down) = plt.subplots(figsize=(20,6), ncols=2)
+
+sns.scatterplot(data=df_up, x='WorkExp', y='ConvertedCompYearly', ax=ax_up)
+sns.scatterplot(data=df_down, x='WorkExp', y='ConvertedCompYearly', ax=ax_down)
+
+fig.suptitle('Correlations')
+
+df_up[['WorkExp', 'ConvertedCompYearly']].corr()
+
+df_down[['WorkExp', 'ConvertedCompYearly']].corr()
+
+# A correlacao do salario com o tempo de trabalho é maior com salarios menores que 300k por ano
+
+fig, (ax_up, ax_down) = plt.subplots(figsize=(20,6), ncols=2)
+
+sns.histplot(data=df_up, x='WorkExp', y='ConvertedCompYearly', ax=ax_up, discrete=(True, False))
+sns.histplot(data=df_down, x='WorkExp', y='ConvertedCompYearly', ax=ax_down, discrete=(True, False))
+
+fig.suptitle('Correlations')
+
+countrys = ['United States of America', 'Germany', 'Brazil', 'South Africa', 'India', 'Australia']
+
+df_paises = df_filter.loc[df_filter['Country'].isin(countrys)]
+
+df_paises['Country'].value_counts()
+
+sns.relplot(data=df_paises, x='WorkExp', y='ConvertedCompYearly', hue='Country', col='Country', col_wrap=3,)
+
+df_paises[['WorkExp', 'ConvertedCompYearly', 'Country']].groupby('Country').corr()
